@@ -8,7 +8,7 @@
     "lint": "vue-cli-service lint",
     "deploy": "yarn build && cp ./dist/index.html ./dist/200.html && cd dist && surge",
     "push": "func() { yarn build && cp ./dist/index.html ./dist/200.html && git add . && git commit -m \"feat: - $1\" && git push origin master; }; func",
-    "git": "func() { git add . && git commit -m \"feat: - $1\" && git push origin master; }; func"
+    "git": "func() { git add . && git commit -m \"$1\" && git push origin master; }; func"
   },
   "dependencies": {
     "@openzeppelin/gsn-provider": "^0.1.9",
