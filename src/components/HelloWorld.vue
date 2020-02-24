@@ -11,7 +11,7 @@
     </div>
     <div class="col-sm-4">
       <h3>Total Supply</h3>        
-      <p>{{Number(totalSupply)}}</p>
+      <p>{{Number(totalSupply).toLocaleString()}}</p>
     </div>
   </div>
   <div class="row">
@@ -19,16 +19,40 @@
       <h3>Minter</h3>
       <p>{{minter}}</p>
     </div>
+    <div class="col-sm-12">
+      <h3>User Balance</h3>
+      <p>{{userbalance}}</p>
+    </div>
   </div>
   <div class="row justify-content-center">
     <div class="col-sm-6 ">
       <h3>Mint token</h3>
       <form>
+        <div class="form-group">
+        <label for="exampleInputEmail1">Address to mint to</label>
+        <input v-model="mint.to" type="text" class="form-control" placeholder="Enter account address">
+      </div>
       <div class="form-group">
         <label for="exampleInputEmail1">Amount of tokens to mint</label>
-        <input v-model="amount" type="number" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Enter token amount">
+        <input v-model="mint.amount" type="number" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Enter token amount">
       </div>
-      <button @click="mint" :disabled="amount < 1" type="button" class="btn btn-primary">Mint</button>
+      <button @click="mintToken" :disabled="mint.amount < 1" type="button" class="btn btn-primary">Mint</button>
+    </form>
+    </div>
+  </div>
+  <div class="row justify-content-center">
+    <div class="col-sm-6 ">
+      <h3>Transfer</h3>
+      <form>
+      <div class="form-group">
+        <label for="exampleInputEmail1">Address to transfer to</label>
+        <input v-model="transfer.to" type="text" class="form-control" placeholder="Enter account address">
+      </div>
+      <div class="form-group">
+        <label for="exampleInputEmail1">Amount of tokens to transfer</label>
+        <input v-model="transfer.amount" type="number" class="form-control" placeholder="Enter transfer amount">
+      </div>
+      <button @click="transferToken" :disabled="transfer.amount < 1 && transfer.to.length < 0" type="button" class="btn btn-primary">Transfer</button>
     </form>
     </div>
   </div>
@@ -48,14 +72,24 @@
 </template>
 
 <script>
-import {signAndTransact} from '../signAndTransact'
+import {generateContract} from '../generateContract'
 export default {
   name: 'HelloWorld',
   data: function () {
     return {
-      amount: 0,
+      ContractAddress: '0x61602dd79fab9CD2336D99752f3a16F0c8302DF5',
+      key: '',
+      transfer: {
+        to: '',
+        amount: 0,
+      },
+      mint: {
+        to: '',
+        amount: 0,
+      },
       name: '',
       symbol: '',
+      userbalance: '',
       totalSupply: '',
       minter: '',
       notificationSystem: {
@@ -84,15 +118,16 @@ export default {
   },
   methods: {
     async init() {
-      console.log(window.MyContract.methods)
+      const coinbase_key = 'B290B755FC32345BC85AF29FB058057CDCD14853E5E9806CA09832EC559E1FBC'
+      const MyContract = generateContract(coinbase_key, this.ContractAddress)
       try {
-        [this.name, this.symbol, this.totalSupply, this.minter] = await Promise.all([
-          window.MyContract.methods.name().call(),
-          window.MyContract.methods.symbol().call(),
-          window.MyContract.methods.totalSupply().call(),
-          window.MyContract.methods.masterMinter().call()
+        [this.name, this.symbol, this.totalSupply, this.minter, this.userbalance] = await Promise.all([
+          MyContract.methods.name().call(),
+          MyContract.methods.symbol().call(),
+          MyContract.methods.totalSupply().call(),
+          MyContract.methods.masterMinter().call(),
+          MyContract.methods.balanceOf('0x77598660059c39924d068940B26E9F3fc373261A').call()
         ])
-        
         this.$toast.success('Token details fetched', '', this.notificationSystem.options.success)
       } catch (error) {
         console.log(error)
@@ -101,24 +136,12 @@ export default {
      
     },
 
-    async mint() {
-      // console.log(this.amount, this.minter)
-      let coinbase = '0x77598660059c39924d068940B26E9F3fc373261A'
-      let key = 'B290B755FC32345BC85AF29FB058057CDCD14853E5E9806CA09832EC559E1FBC'
-      let ContractAddress = '0x5cb886C32De048CF9EC61014b5232552A63824A5'
-      
+    async mintToken() {
       try {
-        const nonce = await window.web3.eth.getTransactionCount(coinbase, 'latest')
-        const details = {
-          nonce,
-          from: coinbase,
-          to: ContractAddress,
-          gasPrice: window.web3.utils.toHex(window.web3.utils.toWei('50'.toString(), 'gwei')),
-          gasLimit: window.web3.utils.toHex(4700000), // Raise the gas limit to a much higher amount
-          data: window.MyContract.methods.mint(this.minter, this.amount).encodeABI(),
-        };
-        console.log(details)
-        const minter = await signAndTransact(window.web3, key, details);
+        const coinbase_address = '0x77598660059c39924d068940B26E9F3fc373261A'
+        const coinbase_key = 'B290B755FC32345BC85AF29FB058057CDCD14853E5E9806CA09832EC559E1FBC'
+        const MyContract = generateContract(coinbase_key, this.ContractAddress)
+        const minter = await MyContract.methods.mint(this.mint.to, this.mint.amount).send({from: coinbase_address, useGSN: true})
         console.log(minter)
         if(minter){
           this.$toast.success('Token has been minted', '', this.notificationSystem.options.success)
@@ -129,12 +152,28 @@ export default {
         console.log(error)
         this.$toast.error('could not mint token', '', this.notificationSystem.options.error)
       }
-     
+    },
+
+    async transferToken() {
+      try {
+        const coinbase_address = '0x8BBc49E86AC2FcE6365c8c3848F34912F551663e'
+        const coinbase_key = 'A73A134F2F785998C4487B67844238250EC96568479181A4FD6E9843A6D19547'
+        const MyContract = generateContract(coinbase_key, this.ContractAddress)
+        const transfer = await MyContract.methods.transfer(this.transfer.to, this.transfer.amount).send({from: coinbase_address, useGSN: true})
+        console.log(transfer)
+        if(transfer){
+          this.$toast.success('Token has been transfered', '', this.notificationSystem.options.success)
+        }
+        this.init()
+      } catch (error) {
+        console.log(error)
+        this.$toast.error('could not transfer token', '', this.notificationSystem.options.error)
+      }
     },
 
     // async setMinter() {
     //   try {
-    //     const minter = await window.MyContract.methods.setMinter(this.newMinter).send({
+    //     const minter = await MyContract.methods.setMinter(this.newMinter).send({
     //         from: '0x77598660059c39924d068940B26E9F3fc373261A',
     //         gas: 2000000
     //     })
@@ -142,7 +181,7 @@ export default {
     //       this.$toast.success('Token minter has been set', '', this.notificationSystem.options.success)
     //       this.newMinter = ''
     //     }
-    //     const minterDetails = await window.MyContract.methods.minter().call()
+    //     const minterDetails = await MyContract.methods.minter().call()
     //     this.minter = minterDetails
     //   } catch (error) {
     //     this.$toast.error('could not set token minter', '', this.notificationSystem.options.error)

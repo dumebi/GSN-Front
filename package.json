@@ -11,6 +11,7 @@
     "git": "func() { git add . && git commit -m \"$1\" && git push origin master; }; func"
   },
   "dependencies": {
+    "@openzeppelin/gsn-helpers": "^0.2.3",
     "@openzeppelin/gsn-provider": "^0.1.9",
     "dotenv": "^8.2.0",
     "ethereumjs-tx": "^2.1.2",
