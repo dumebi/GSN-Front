@@ -6,8 +6,8 @@
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
-    "deploy": "yarn build && cp ./dist/index.html ./dist/200.html && cd dist && surge",
-    "push": "func() { yarn build && cp ./dist/index.html ./dist/200.html && git add . && git commit -m \"feat: - $1\" && git push origin master; }; func",
+    "deploy": "npm run build && cp ./dist/index.html ./dist/200.html && cp ./CNAME ./dist/CNAME && cd dist && surge",
+    "push": "func() { npm run build && cp ./dist/index.html ./dist/200.html && git add . && git commit -m \"feat: - $1\" && git push origin master; }; func",
     "git": "func() { git add . && git commit -m \"$1\" && git push origin master; }; func"
   },
   "dependencies": {

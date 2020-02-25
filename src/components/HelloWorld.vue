@@ -14,14 +14,21 @@
       <p>{{Number(totalSupply).toLocaleString()}}</p>
     </div>
   </div>
-  <div class="row">
+  <div class="row justify-content-center">
     <div class="col-sm-12">
       <h3>Minter</h3>
       <p>{{minter}}</p>
     </div>
-    <div class="col-sm-12">
+    <div class="col-sm-6">
       <h3>User Balance</h3>
-      <p>{{userbalance}}</p>
+      <p>{{Number(userbalance).toLocaleString()}}</p>
+      <form>
+        <div class="form-group">
+          <label for="exampleInputEmail1">Enter your eth address</label>
+          <input v-model="userAddress" type="text" class="form-control text-center" placeholder="Enter account address">
+        </div>
+      </form>
+      <button @click="init" :disabled="userAddress < 1 || userAddress == '0x77598660059c39924d068940B26E9F3fc373261A'" type="button" class="btn btn-primary">Get Balance</button>
     </div>
   </div>
   <div class="row justify-content-center">
@@ -56,18 +63,22 @@
     </form>
     </div>
   </div>
-  <!-- <div class="row justify-content-center">
-    <div class="col-sm-8 ">
-      <h3>Set Minter</h3>
+  <div class="row justify-content-center mb-3">
+    <div class="col-sm-6 ">
+      <h3>Add Minter</h3>
       <form>
       <div class="form-group">
-        <label for="exampleInputEmail1">New minter address</label>
-        <input v-model="newMinter" type="text" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Enter address">
+        <label for="exampleInputEmail1">Add minter</label>
+        <input v-model="newMinter.address" type="text" class="form-control" placeholder="Enter address">
       </div>
-      <button @click="setMinter" :disabled="newMinter < 1" type="button" class="btn btn-primary">Set Minter</button>
+      <div class="form-group">
+        <label for="exampleInputEmail1">Add minter</label>
+        <input v-model="newMinter.amount" type="number" class="form-control" placeholder="Allowed amount">
+      </div>
+      <button @click="setMinter" :disabled="newMinter.address < 0 && newMinter.amount < 1" type="button" class="btn btn-primary">Set Minter</button>
     </form>
     </div>
-  </div> -->
+  </div>
 </div>
 </template>
 
@@ -87,6 +98,11 @@ export default {
         to: '',
         amount: 0,
       },
+      newMinter: {
+        address: '',
+        amount: 0,
+      },
+      userAddress: '0x77598660059c39924d068940B26E9F3fc373261A',
       name: '',
       symbol: '',
       userbalance: '',
@@ -126,7 +142,7 @@ export default {
           MyContract.methods.symbol().call(),
           MyContract.methods.totalSupply().call(),
           MyContract.methods.masterMinter().call(),
-          MyContract.methods.balanceOf('0x77598660059c39924d068940B26E9F3fc373261A').call()
+          MyContract.methods.balanceOf(this.userAddress).call()
         ])
         this.$toast.success('Token details fetched', '', this.notificationSystem.options.success)
       } catch (error) {
@@ -138,8 +154,8 @@ export default {
 
     async mintToken() {
       try {
-        const coinbase_address = '0x77598660059c39924d068940B26E9F3fc373261A'
-        const coinbase_key = 'B290B755FC32345BC85AF29FB058057CDCD14853E5E9806CA09832EC559E1FBC'
+        const coinbase_address = '0x931EC58f47E576AEFf0DE5892A21A3FB965878a2'
+        const coinbase_key = '11175CF24A6F7D7DDD36817D1EA22B8B4BA35D44F7954A778D993907FFE9ADE8'
         const MyContract = generateContract(coinbase_key, this.ContractAddress)
         const minter = await MyContract.methods.mint(this.mint.to, this.mint.amount).send({from: coinbase_address, useGSN: true})
         console.log(minter)
@@ -171,23 +187,26 @@ export default {
       }
     },
 
-    // async setMinter() {
-    //   try {
-    //     const minter = await MyContract.methods.setMinter(this.newMinter).send({
-    //         from: '0x77598660059c39924d068940B26E9F3fc373261A',
-    //         gas: 2000000
-    //     })
-    //     if(minter){
-    //       this.$toast.success('Token minter has been set', '', this.notificationSystem.options.success)
-    //       this.newMinter = ''
-    //     }
-    //     const minterDetails = await MyContract.methods.minter().call()
-    //     this.minter = minterDetails
-    //   } catch (error) {
-    //     this.$toast.error('could not set token minter', '', this.notificationSystem.options.error)
-    //   }
+    async setMinter() {
+      try {
+        const coinbase_address = '0x77598660059c39924d068940B26E9F3fc373261A'
+        const coinbase_key = 'B290B755FC32345BC85AF29FB058057CDCD14853E5E9806CA09832EC559E1FBC'
+        const MyContract = generateContract(coinbase_key, this.ContractAddress)
+        const minter = await MyContract.methods.configureMinter(this.newMinter.address, this.newMinter.amount).send({from: coinbase_address, useGSN: true})
+        console.log(minter)
+        if(minter){
+          this.$toast.success('Token minter has been set', '', this.notificationSystem.options.success)
+          this.newMinter = {
+            address: '',
+            amount: 0,
+          }
+        }
+      } catch (error) {
+        console.log(error)
+        this.$toast.error('could not set token minter', '', this.notificationSystem.options.error)
+      }
      
-    // }
+    }
   }
 }
 </script>
